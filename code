@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <math.h>
+#include "portaudio.h"
+
+#define SAMPLE_RATE         (44100)
+#define DURATION            (2.0)
+#define FREQUENCY_RATIO     (pow(2.0, 2.0/12.0)) // Major second interval
+
+#ifndef M_PI
+#define M_PI  (3.14159265)
+#endif
+
+typedef struct
+{
+    double phase;
+} paTestData;
+
+static int paCallback(const void* inputBuffer, void* outputBuffer,
+                      unsigned long framesPerBuffer,
+                      const PaStreamCallbackTimeInfo* timeInfo,
+                      PaStreamCallbackFlags statusFlags,
+                      void* userData)
+{
+    paTestData* data = (paTestData*)userData;
+    float* out = (float*)outputBuffer;
+    unsigned long i;
+
+    (void)inputBuffer; // Prevent unused variable warning
+
+    for (i = 0; i < framesPerBuffer; i++)
+    {
+        double sample = sin(2 * M_PI * data->phase);
+        *out++ = (float)sample;
+        *out++ = (float)sample;
+        data->phase += FREQUENCY_RATIO * SAMPLE_RATE / SAMPLE_RATE;
+        if (data->phase > 1.0) data->phase -= 2.0;
+    }
+
+    return paContinue;
+}
+
+int main(void)
+{
+    PaStream* stream;
+    PaError err;
+    paTestData data;
+    data.phase = 0.0;
+
+    err = Pa_Initialize();
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+        return 1;
+    }
+
+    err = Pa_OpenDefaultStream(&stream,
+                                0,
+                                2,
+                                paFloat32,
+                                SAMPLE_RATE,
+                                paFramesPerBufferUnspecified,
+                                paCallback,
+                                &data);
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+        Pa_Terminate();
+        return 1;
+    }
+
+    err = Pa_StartStream(stream);
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+        Pa_CloseStream(stream);
+        Pa_Terminate();
+        return 1;
+    }
+
+    printf("Press Enter to stop...\n");
+    getchar();
+
+    err = Pa_StopStream(stream);
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+    }
+
+    err = Pa_CloseStream(stream);
+    if (err != paNoError)
+    {
+        printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+    }
+
+    Pa_Terminate();
+    return 0;
+}
