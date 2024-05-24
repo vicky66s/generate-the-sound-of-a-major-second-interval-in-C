@@ -1,15 +1,13 @@
 #include <stdio.h> 
 #include <math.h>
 #include "portaudio.h"
-
 #define SAMPLE_RATE         (44100)
 #define DURATION            (2.0)
 #define FREQUENCY_RATIO     (pow(2.0, 2.0/12.0)) // Major second interval
-
 #ifndef M_PI
 #define M_PI  (3.14159265) 
 #endif
-
+.
 typedef struct
 {
     double phase; 
